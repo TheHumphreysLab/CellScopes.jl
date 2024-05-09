@@ -55,41 +55,41 @@ The container's Port ID for ```cellscopes``` is 5237. A tutorial for connecting 
 ## 2. Tutorials
 ```CellScopes``` supports analysis for single-cell RNA sequencing (scRNA-seq), single-cell ATAC-seq (scATAC-seq), Visium, Slide-seq, Cartana, MERFISH, seqFISH, STARmap and Xenium datasets. For more information, please refer to the tutorials provided below.
 <br>
-***a. dRNA HybISS by Cartana***: https://github.com/HaojiaWu/CellScopes.jl/tree/main/docs/cartana_tutorial
+***a. dRNA HybISS by Cartana***: https://github.com/TheHumphreysLab/CellScopes.jl/tree/main/docs/cartana_tutorial
 <br>
-***b. scRNA-seq***: https://github.com/HaojiaWu/CellScopes.jl/tree/main/docs/scRNA_tutorial
+***b. scRNA-seq***: https://github.com/TheHumphreysLab/CellScopes.jl/tree/main/docs/scRNA_tutorial
 <br>
-***c. scATAC-seq***: https://github.com/HaojiaWu/CellScopes.jl/tree/main/docs/scATAC_tutorial
+***c. scATAC-seq***: https://github.com/TheHumphreysLab/CellScopes.jl/tree/main/docs/scATAC_tutorial
 <br>
-***d. 10x Visium***: https://github.com/HaojiaWu/CellScopes.jl/tree/main/docs/visium_tutorial
+***d. 10x Visium***: https://github.com/TheHumphreysLab/CellScopes.jl/tree/main/docs/visium_tutorial
 <br>
-***e. 10x Xenium***: https://github.com/HaojiaWu/CellScopes.jl/tree/main/docs/xenium_tutorial
+***e. 10x Xenium***: https://github.com/TheHumphreysLab/CellScopes.jl/tree/main/docs/xenium_tutorial
 <br>
-***f. MERFISH***: https://github.com/HaojiaWu/CellScopes.jl/tree/main/docs/MERFISH_tutorial
+***f. MERFISH***: https://github.com/TheHumphreysLab/CellScopes.jl/tree/main/docs/MERFISH_tutorial
 <br>
-***g. Slide-seq***: https://github.com/HaojiaWu/CellScopes.jl/tree/main/docs/SlideSeq_tutorial
+***g. Slide-seq***: https://github.com/TheHumphreysLab/CellScopes.jl/tree/main/docs/SlideSeq_tutorial
 <br>
-***h. seqFISH***: https://github.com/HaojiaWu/CellScopes.jl/tree/main/docs/seqfish_tutorial
+***h. seqFISH***: https://github.com/TheHumphreysLab/CellScopes.jl/tree/main/docs/seqfish_tutorial
 <br>
-***i. STARmap***: https://github.com/HaojiaWu/CellScopes.jl/tree/main/docs/starmap_tutorial
+***i. STARmap***: https://github.com/TheHumphreysLab/CellScopes.jl/tree/main/docs/starmap_tutorial
 <br>
-***j. Visium HD***: https://github.com/HaojiaWu/CellScopes.jl/blob/main/docs/VisiumHD_tutorial
+***j. Visium HD***: https://github.com/TheHumphreysLab/CellScopes.jl/blob/main/docs/VisiumHD_tutorial
 <br>
 
 In addition to these standalone CellScopes analyses, we also provide tutorials how CellScopes can interact with other popular tools such as Seurat, Scanpy and tools for gene imputation and spot deconvolution.
 <br>
-***k. Conversion of Scanpy AnnData to CellScopes Objects***: https://github.com/HaojiaWu/CellScopes.jl/tree/main/docs/scanpy_conversion
+***k. Conversion of Scanpy AnnData to CellScopes Objects***: https://github.com/TheHumphreysLab/CellScopes.jl/tree/main/docs/scanpy_conversion
 <br>
-***l. Conversion of Seurat Objects to CellScopes Objects***: https://github.com/HaojiaWu/CellScopes.jl/tree/main/docs/seurat_conversion
+***l. Conversion of Seurat Objects to CellScopes Objects***: https://github.com/TheHumphreysLab/CellScopes.jl/tree/main/docs/seurat_conversion
 <br>
-***m. Gene imputation using SpaGE, tangram and gimVI***: https://github.com/HaojiaWu/CellScopes.jl/tree/main/docs/gene_imputation
+***m. Gene imputation using SpaGE, tangram and gimVI***: https://github.com/TheHumphreysLab/CellScopes.jl/tree/main/docs/gene_imputation
 <br>
 
 Finally, we also provide tutorials for incorporating high-resolution H&E and nuclei staining images for Visium and Xenium data visualization.
 <br>
-***n. Visium data visualization with a high-resolution H&E image***: https://github.com/HaojiaWu/CellScopes.jl/tree/main/docs/Visium_more_viz
+***n. Visium data visualization with a high-resolution H&E image***: https://github.com/TheHumphreysLab/CellScopes.jl/tree/main/docs/Visium_more_viz
 <br>
-***o. Xenium data visualization with a high-resolution H&E/DAPI image***: https://github.com/HaojiaWu/CellScopes.jl/tree/main/docs/Xenium_more_viz
+***o. Xenium data visualization with a high-resolution H&E/DAPI image***: https://github.com/TheHumphreysLab/CellScopes.jl/tree/main/docs/Xenium_more_viz
 <br>
 
 ## 3. Citation
