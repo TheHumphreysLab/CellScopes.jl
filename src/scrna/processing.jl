@@ -63,6 +63,44 @@ function scale_object(sc_obj::get_object_group("All"); features::Union{Vector{St
     return sc_obj
 end
 
+function run_sctransform(sc_obj)
+    @info "This run_sctransform function uses the SCTransform workflow from Seurat through RCall. Please visit Satija's lab for more details: https://satijalab.org/seurat/"
+    genes = sc_obj.rawCount.gene_name
+    cells = sc_obj.rawCount.cell_name
+    raw_ct = Matrix{Int64}(sc_obj.rawCount.count_mtx)
+    @rput raw_ct
+    @rput genes
+    @rput cells
+    R"""
+    library(Matrix)
+    library(Seurat)
+    rownames(raw_ct) <- genes
+    colnames(raw_ct) <- cells
+    raw_ct_sparse <- Matrix(raw_ct, sparse = TRUE)
+    seu_obj <- CreateSeuratObject(raw_ct_sparse, min.cells=0, min.features=0)
+    seu_obj <- SCTransform(seu_obj, vst.flavor = "v2", verbose=F)
+    norm_count <- as(seu_obj@assays$SCT@data, "matrix")
+    all_genes <- rownames(norm_count)
+    scale_count <- seu_obj@assays$SCT@scale.data
+    var_genes <- seu_obj@assays$SCT@var.features
+    """
+    all_genes = rcopy(R"all_genes")
+    norm_count = rcopy(R"norm_count")
+    norm_count = convert(SparseMatrixCSC{Float64, Int64},norm_count)
+    scale_count = rcopy(R"scale_count")
+    scale_count = convert(SparseMatrixCSC{Float64, Int64},scale_count)
+    var_genes = rcopy(R"var_genes")
+    sc_obj = normalize_object(sc_obj)
+    sc_obj = scale_object(sc_obj)
+    sc_obj.normCount.count_mtx = norm_count
+    sc_obj.normCount.gene_name = all_genes
+    sc_obj.scaleCount.count_mtx = scale_count
+    sc_obj.scaleCount.gene_name = var_genes
+    sc_obj = find_variable_genes(sc_obj)
+    sc_obj.varGene.var_gene = var_genes
+    return sc_obj
+end
+
 function find_variable_genes(ct_mtx::RawCountObject; nFeatures::Int64 = 2000, span::Float64 = 0.3)
     gene_num = length(ct_mtx.gene_name)
     if gene_num < nFeatures
@@ -94,19 +132,30 @@ function find_variable_genes(sc_obj::get_object_group("All"); nFeatures::Int64 =
     return sc_obj
 end
 
-function run_pca(sc_obj::get_object_group("All"); method=:svd, pratio = 1, maxoutdim = 10)
+function run_pca(sc_obj::get_object_group("All"); method=:svd, pratio = 1, maxoutdim = 10, package="MLJ")
     features = sc_obj.varGene.var_gene
     if length(sc_obj.scaleCount.gene_name) == length(sc_obj.rawCount.gene_name)
         new_count = subset_count(sc_obj.scaleCount; genes = features)
     else
         new_count = sc_obj.scaleCount
     end
-    pca_mat = new_count.count_mtx'
-    pca_mat = Matrix(pca_mat)
-    pca_mat = convert(Matrix{Float64}, pca_mat)
-    M = MultivariateStats.fit(PCA, pca_mat; method=method, pratio=pratio, maxoutdim=maxoutdim)
-    proj = MultivariateStats.projection(M)
-    percent_var = principalvars(M) ./ tvar(M) * 100
+    if package == "MLJ"
+        scaled_count = ctobj_to_df(new_count)
+        Y, X = MLJ.unpack(scaled_count, ==(:cell))
+        MS_PCA = MLJ.@load PCA pkg=MultivariateStats
+        pca_model = MS_PCA(maxoutdim=maxoutdim, method=method, variance_ratio=pratio)
+        pca = machine(pca_model, X)
+        MLJ.fit!(pca, verbosity=2)
+        proj = MLJ.transform(pca)
+        proj = Matrix(proj)
+        M = nothing
+        percent_var = nothing
+    else
+        pca_mat = Matrix{Float64}(new_count.count_mtx')
+        M = MultivariateStats.fit(PCA, pca_mat; method=method, pratio=pratio, maxoutdim=maxoutdim)
+        proj = MultivariateStats.projection(M)
+        percent_var = principalvars(M) ./ tvar(M) * 100
+    end
     key = "PC"
     pca_obj = PCAObject(proj, M, percent_var, key , method, pratio, maxoutdim)
     reduction_obj = ReductionObject(pca_obj, nothing, nothing)
@@ -312,4 +361,17 @@ function find_all_markers(sc_obj::get_object_group("All"); anno::Union{String, S
         next!(p)
     end
     return all_markers
+end
+
+function run_harmony(sc_obj::get_object_group("All"), metadata::DataFrame, batch::Union{String, Symbol}; kwargs...)        
+    @info "The run_harmony function is a Julia implementation of the Harmony for data integration. Please read the original paper for the algorithm details: https://www.nature.com/articles/s41592-019-0619-0. The Julia codes are based on a python implementation of Harmony (harmonypy): https://github.com/slowkow/harmonypy"
+    pca_mat = sc_obj.dimReduction.pca.cell_embedding
+    metadata = sc_obj.metaData
+    if isa(batch, String)
+        batch = Symbol(batch)
+    end
+    ho = HarmonyObject(pca_mat, meta, batch; kwargs...)
+    harmony_matrix = Matrix{Float64}(ho.Z_corr')
+    sc_obj.dimReduction.pca.cell_embedding = harmony_matrix
+    return sc_obj
 end

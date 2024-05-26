@@ -382,6 +382,16 @@ function read_baysor(baysor_output::String; tech::String="newtech",
     y_col::Union{String, Symbol} = "y", cell_col::Union{String, Symbol} = "cell")
 molecules = CSV.read(baysor_output * "/segmentation.csv", DataFrame)
 count_df = CSV.read(baysor_output * "/segmentation_counts.tsv", DataFrame)
+patterns = [r"^NegControlProbe_", r"^Unassigned", r"^antisense_", r"^NegControlCodeword_", r"^BLANK_"]
+if is_match(String.(count_df.gene), patterns)
+    count_df = @chain count_df begin
+        @rsubset !match_patterns(:gene, patterns)
+    end
+
+    molecules = @chain molecules begin
+        @rsubset !match_patterns(:gene, patterns)
+    end
+end
 cells = CSV.read(baysor_output * "/segmentation_cell_stats.csv", DataFrame)
 toml_info = TOML.parsefile(baysor_output * "/segmentation_config.toml")
 scale_value = toml_info["Data"]["scale"]
