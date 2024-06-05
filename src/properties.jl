@@ -9,7 +9,7 @@ function get_object_group(obj_type::String)
     elseif obj_type == "Spatial2"
         objs = Union{ImagingSpatialObject, CartanaObject, VisiumObject, XeniumObject, MerfishObject, SlideseqObject, STARmapObject, seqFishObject, StereoSeqObject, CosMxObject}
     elseif obj_type == "All"
-        objs = Union{scRNAObject, scATACObject, ImagingSpatialObject, CartanaObject, VisiumObject, VisiumHDObject, XeniumObject, MerfishObject, SlideseqObject, STARmapObject, seqFishObject, StereoSeqObject, CosMxObject}
+        objs = Union{scRNAObject, scATACObject, ImagingSpatialObject, CartanaObject, VisiumObject, VisiumHDObject, XeniumObject, MerfishObject, SlideseqObject, STARmapObject, seqFishObject, StereoSeqObject, CosMxObject, IntegratedObject}
     else
         error("Obj_type can only be Sequencing, Imaging, Spatial or All")
     end
@@ -74,7 +74,7 @@ function Base.show(io::IO, count::AbstractCount)
     [println("- ", string(i)) for i in fieldnames(typeof(count))]
 end
 
-function Base.show(io::IO, obj_type::Union{AbstractDimReduction, ClusteringObject, VariableGeneObject, UndefinedObject, SpaImputeObj, VisiumImgObject, SpaCountObj, SpaMetaObj, SpaImageObj, Layer, Layers, Positions, AlterImages, AlterHDImgObject, HarmonyObject})
+function Base.show(io::IO, obj_type::Union{AbstractDimReduction, ClusteringObject, VariableGeneObject, UndefinedObject, SpaImputeObj, VisiumImgObject, SpaCountObj, SpaMetaObj, SpaImageObj, Layer, Layers, Positions, AlterImages, AlterHDImgObject, HarmonyObject, AncillaryObject, AncillaryObjects})
     println(io, string(typeof(obj_type)))
     println("All fields:")
     [println("- ", string(i)) for i in fieldnames(typeof(obj_type))]
@@ -101,6 +101,8 @@ matchtype(field) = @match field begin
     layer::Layer => println("- Layer")
     layers::Layers => println("- Layers data")
     positions::Positions => println("- Positions data")
+    ancObject::AncillaryObject => println("- Ancillary object")
+    ancObjects::AncillaryObjects => println("- Ancillary data")
     alterimg::AlterImages => println("- Processed image data")
     alterimgobj::AlterHDImgObject => println("- Alternative image data")
     polygonData::Polygons => println("- Polygon data")
@@ -108,7 +110,7 @@ matchtype(field) = @match field begin
     emptyObj::Nothing => print("")
 end
 
-function Base.show(io::IO, sp_obj::get_object_group("Spatial"))
+function Base.show(io::IO, sp_obj::get_object_group("All"))
     if isa(sp_obj, ImagingSpatialObject)
         println(io, "ImagingSpatialObject in CellScopes.jl")
     elseif isa(sp_obj, CartanaObject)
@@ -127,6 +129,8 @@ function Base.show(io::IO, sp_obj::get_object_group("Spatial"))
         println(io, "StereoSeqObject in CellScopes.jl")
     elseif isa(sp_obj, VisiumHDObject)
         println(io, "VisiumHDObject in CellScopes.jl")
+    elseif isa(sp_obj, IntegratedObject)
+        println(io, "IntegratedObject in CellScopes.jl")
     else
         println(io, "VisiumObject in CellScopes.jl")
     end

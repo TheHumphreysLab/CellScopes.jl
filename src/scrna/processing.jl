@@ -171,6 +171,7 @@ function run_clustering_atlas(sc_obj::get_object_group("All"); n_neighbors=30, m
         graph = nndescent(pca_vec, n_neighbors, metric)
         indices, dist_mat = knn_matrices(graph)
     end
+#=
     n = size(indices, 2)
     adj_mat = Array{Int16}(undef, n, n)
     for i in 1:n
@@ -182,6 +183,24 @@ function run_clustering_atlas(sc_obj::get_object_group("All"); n_neighbors=30, m
     if n > 10000 # Input as SparseMatrix to Leiden runs quicker for large dataset
         adj_mat = convert(SparseMatrixCSC{Int64,Int64}, adj_mat)
     end
+    Random.seed!(seed_use)
+    result = Leiden.leiden(adj_mat, resolution = res)
+=#
+    n = size(indices, 2)
+    row_indices = Vector{Int64}()
+    col_indices = Vector{Int64}()
+    values = Vector{Int64}()
+    for i in 1:n
+        for j in 1:size(indices, 1)
+            push!(row_indices, indices[j, i])
+            push!(col_indices, i)
+            push!(values, 1)
+            push!(row_indices, i)
+            push!(col_indices, indices[j, i])
+            push!(values, 1)
+        end
+    end
+    adj_mat = sparse(row_indices, col_indices, values, n, n)
     Random.seed!(seed_use)
     result = Leiden.leiden(adj_mat, resolution = res)
     df = DataFrame()
@@ -361,17 +380,4 @@ function find_all_markers(sc_obj::get_object_group("All"); anno::Union{String, S
         next!(p)
     end
     return all_markers
-end
-
-function run_harmony(sc_obj::get_object_group("All"), metadata::DataFrame, batch::Union{String, Symbol}; kwargs...)        
-    @info "The run_harmony function is a Julia implementation of the Harmony for data integration. Please read the original paper for the algorithm details: https://www.nature.com/articles/s41592-019-0619-0. The Julia codes are based on a python implementation of Harmony (harmonypy): https://github.com/slowkow/harmonypy"
-    pca_mat = sc_obj.dimReduction.pca.cell_embedding
-    metadata = sc_obj.metaData
-    if isa(batch, String)
-        batch = Symbol(batch)
-    end
-    ho = HarmonyObject(pca_mat, meta, batch; kwargs...)
-    harmony_matrix = Matrix{Float64}(ho.Z_corr')
-    sc_obj.dimReduction.pca.cell_embedding = harmony_matrix
-    return sc_obj
 end
