@@ -11,7 +11,7 @@
 ## 1. Installation
 
 > [!NOTE]
-> We are currently working on making ```CellScopes.jl``` compartible with Julia v1.10.4. Please install the ```dev``` branch if you want to test it on your server: https://github.com/HaojiaWu/CellScopes.jl/tree/dev
+> We are currently working on making ```CellScopes.jl``` compartible with Julia v1.10.4. Please install the ```dev``` branch if you want to test it on your server: https://github.com/TheHumphreysLab/CellScopes.jl/tree/dev
 
 ### 1.1. Julia
 
