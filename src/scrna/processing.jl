@@ -31,13 +31,15 @@ function normalize_object(mtx::AbstractMatrix{<:Real}; scale_factor = 10000, nor
 end
 
 function normalize_object(ct_obj::RawCountObject; scale_factor = 10000, norm_method = "logarithm", pseudocount = 1)
-    norm_count = normalize_object(ct_obj.count_mtx; scale_factor=scale_factor, norm_method=norm_method, pseudocount=pseudocount)
+    ct_mtx = deepcopy(ct_obj.count_mtx)
+    norm_count = normalize_object(ct_mtx; scale_factor=scale_factor, norm_method=norm_method, pseudocount=pseudocount)
     norm_obj = NormCountObject(norm_count, ct_obj.cell_name, ct_obj.gene_name, scale_factor, norm_method, pseudocount)
     return norm_obj
 end
 
 function normalize_object(sc_obj::get_object_group("All"); scale_factor = 10000, norm_method = "logarithm", pseudocount = 1)
-    norm_obj = normalize_object(sc_obj.rawCount; scale_factor = scale_factor, norm_method = norm_method, pseudocount = pseudocount)
+    raw_count_obj = deepcopy(sc_obj.rawCount)
+    norm_obj = normalize_object(raw_count_obj; scale_factor = scale_factor, norm_method = norm_method, pseudocount = pseudocount)
     sc_obj.normCount = norm_obj
     if isa(sc_obj, Union{MerfishObject, CartanaObject, XeniumObject})
         replace!(sc_obj.normCount.count_mtx, NaN=>0)
@@ -73,17 +75,19 @@ function scale_object(count_mtx::AbstractMatrix{<:Real}; scale_max = 10.0, do_sc
     return count_mtx
 end
 
-function scale_object(ct_obj::NormCountObject; features::Union{Vector{String}, Nothing}=nothing, kwargs...)
+function scale_object(ct_obj::NormCountObject; features::Union{Vector{String}, Nothing}=nothing, scale_max = 10.0, do_scale::Bool = true, do_center::Bool = true, kwargs...)
     if features !== nothing
         ct_obj = subset_count(ct_obj; genes = features)
     end
-    scale_count = scale_object(ct_obj.count_mtx; kwargs...)
+    ct_mtx = deepcopy(ct_obj.count_mtx)
+    scale_count = scale_object(ct_mtx; kwargs...)
     scale_obj = ScaleCountObject(scale_count, ct_obj.cell_name, ct_obj.gene_name, do_scale, do_center, scale_max)
     return scale_obj
 end
 
 function scale_object(sc_obj::get_object_group("All"); kwargs...)
-    scale_obj = scale_object(sc_obj.normCount; kwargs...)
+    norm_count_obj = deepcopy(sc_obj.normCount)
+    scale_obj = scale_object(norm_count_obj; kwargs...)
     sc_obj.scaleCount = scale_obj
     return sc_obj
 end
@@ -136,7 +140,7 @@ function find_variable_genes(ct_mtx::RawCountObject; nFeatures::Int64 = 2000, sp
     vst_data = [mean_val var_val zeros(length(mean_val)) zeros(length(mean_val))]
     vst_data = DataFrame(vst_data, :auto)
     rename!(vst_data, ["mean", "variance", "variance_expected","variance_standardized"])
-    #vst_data = filter(:variance => >(0.0), vst_data)
+    vst_data = filter(:variance => >(0.0), vst_data)
     fit_data = loess(log10.(vst_data.mean), log10.(vst_data.variance), span=span)
     vst_data.variance_expected = 10 .^ Loess.predict(fit_data, log10.(vst_data.mean))
     mean1 = sparsevec(vst_data.mean)
