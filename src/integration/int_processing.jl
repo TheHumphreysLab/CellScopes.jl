@@ -133,8 +133,8 @@ end
 
 function normalize_paired_object(sp::PairedObject; kwargs...)
     sp = normalize_object(sp; kwargs...)
-    sp = normalize_object(sp.pairedData.xnObj; kwargs...)
-    sp = normalize_object(sp.pairedData.vsObj; kwargs...)
+    sp.pairedData.xnObj = normalize_object(sp.pairedData.xnObj; kwargs...)
+    sp.pairedData.vsObj = normalize_object(sp.pairedData.vsObj; kwargs...)
     return sp
 end
 
@@ -215,6 +215,7 @@ function process_hd_dimplot_data(hd_obj;
     y_lims = nothing,
     pt_bg_color = "transparent",
     alpha::Real = 0.5,
+    cell_shape = "point",
     adjust_contrast= 1.0,
     adjust_brightness = 0.0
 )
@@ -278,7 +279,11 @@ function process_hd_dimplot_data(hd_obj;
     poly = poly[polygon_num]
     poly = [m .- [x_lims[1]-1 y_lims[1]-1] for m in poly]
     plt_color = select_fov.new_color
-    return img, poly, cell_color, plt_color
+    if cell_shape != "point"
+        return img, poly, cell_color, plt_color
+    else
+        return img, select_fov, cell_color, plt_color
+    end
 end
 
 function process_hd_featureplot_data(hd_obj, gene;
@@ -287,9 +292,10 @@ function process_hd_featureplot_data(hd_obj, gene;
     y_col = "y", 
     hd_layer = "8_um",
     clip = 0.0,
-    scale =  false,
     x_lims = nothing, 
     y_lims = nothing,
+    cell_shape = "bin",
+    scale = false,
     adjust_contrast= 1.0,
     adjust_brightness = 0.0
 )
@@ -347,7 +353,11 @@ function process_hd_featureplot_data(hd_obj, gene;
     end
     colors = get(c_map, gene_expr, :extrema)
     plt_color="#" .* hex.(colors)
-    return img, poly2, gene_expr, plt_color, c_map
+    if cell_shape != "point"
+        return img, poly2, gene_expr, plt_color, c_map
+    else
+        return img, select_fov, gene_expr, plt_color, c_map
+    end
 end
 
 function process_paired_featureplot_data(sp::PairedObject, gene::String;
@@ -355,12 +365,13 @@ function process_paired_featureplot_data(sp::PairedObject, gene::String;
     x_col = "x",  
     y_col = "y", 
     clip = 0.0,
-    scale =  false,
     x_lims = nothing, 
     y_lims = nothing,
     adjust_contrast= 1.0,
     adjust_brightness = 0.0,
-    img_use = "xn_img"
+    img_use = "xn_img",
+    scale = false,
+    cell_shape = "point"
 )
 
     if isa(sp.normCount, Nothing)
@@ -407,7 +418,11 @@ function process_paired_featureplot_data(sp::PairedObject, gene::String;
     end
     colors = get(c_map, gene_expr, :extrema)
     plt_color="#" .* hex.(colors)
-    return img2, poly2, gene_expr, plt_color, c_map
+    if cell_shape == "point"
+        return img2, select_fov, gene_expr, plt_color, c_map
+    else
+        return img2, poly2, gene_expr, plt_color, c_map
+    end
 end
 
 function process_xn_dimplot_data(sp;
@@ -533,4 +548,104 @@ function process_xn_dimplot_data(sp;
     else
         error("""cell_shape can only be "point" or "polygon"!""")
     end
+end
+
+function get_rotation_matrix(degrees::Float64, center::Union{Tuple, Vector}; 
+    clockwise = true)
+    θ = deg2rad(degrees)
+    c, s = cos(θ), sin(θ)
+    x0 = center[1]
+    y0 = center[2]
+    T1 = [1 0 -x0;
+        0 1 -y0;
+        0 0  1]
+    if clockwise
+        R = [c  s 0;
+            -s  c 0;
+            0  0 1]
+    else
+        R = [c -s 0;
+            s  c 0;
+            0  0 1]
+    end
+    T2 = [1 0 x0;
+        0 1 y0;
+        0 0 1]
+
+    return T2 * R * T1
+end
+
+
+function rotate_coord(df::DataFrame, degrees::Union{Float64, Int64}, center::Union{Tuple, Vector}; 
+    x_col::Union{Symbol, String}=:x, y_col::Union{Symbol, String}=:y, clockwise = true)
+    if isa(x_col, String)
+        x_col = Symbol(x_col)
+    end
+    if isa(y_col, String)
+        y_col = Symbol(y_col)
+    end
+    M = get_rotation_matrix(degrees, center; clockwise=clockwise)
+    coords = [df[!, x_col] df[!, y_col] ones(size(df, 1))]'
+    rotated = M * coords
+    return DataFrame(x = vec(rotated[1, :]), y = vec(rotated[2, :]))
+end
+
+
+function rotate_object(sp::Union{XeniumObject, VisiumHDObject}, degree; 
+    center = nothing, clockwise = true, x_col = :x, y_col = :y)
+
+    if isa(sp, XeniumObject)
+        img = deepcopy(sp.imageData)
+        df_plt = deepcopy(sp.spmetaData.cell)
+    elseif isa(sp, VisiumHDObject)
+        img = deepcopy(sp.imageData.fullresImage)
+        df_plt = deepcopy(sp.spmetaData)
+        rename!(df_plt, [:barcode, :pxl_row_in_fullres, :pxl_col_in_fullres] .=> [:cell, :x, :y])
+        df_plt = df_plt[!, [:cell, :x, :y]]
+    else
+        error("sp can only be a Xenium or VisiumHD object.")
+    end
+
+    if center === nothing
+        center = [mean(df_plt[!, x_col]), mean(df_plt[!, y_col])]
+    end
+    h1, w1 = size(img)
+    xs = repeat(1:h1, outer = w1)
+    ys = repeat(1:w1, inner = h1)
+    colors = vec(img)
+    df33 = DataFrame(x = xs, y=ys, color=colors)
+    @info "Rotating image..."
+    rot_coords = rotate_coord(df33, degree, center; clockwise = clockwise)
+    println("Image was rotated!")
+    rot_x = rot_coords[:, 1]
+    rot_y = rot_coords[:, 2]
+    @info "Rotating cell coordinates..."
+    rot_df = rotate_coord(df_plt, degree, center; clockwise = clockwise)
+    println("Coordinates were rotated!")
+    x_offset = minimum(rot_x)
+    y_offset = minimum(rot_y)
+    rot_x .-= x_offset
+    rot_y .-= y_offset
+    rot_df.x .-= x_offset
+    rot_df.y .-= y_offset
+    new_x = Int64.(round.(rot_x)) .+ 1
+    new_y = Int64.(round.(rot_y)) .+ 1
+    max_x = maximum(new_x)
+    max_y = maximum(new_y)
+    new_img = fill(RGB{N0f8}(1.0, 1.0, 1.0), max_x, max_y)
+    for i in 1:length(new_x)
+        new_img[new_x[i], new_y[i]] = colors[i]
+    end
+    @info "Smoothing image..."
+    new_img = smoothe_img(new_img)
+    println("Image was smoothed!")
+    min_h = Int64(round(minimum(rot_df.y) / 2))
+    min_w = Int64(round(minimum(rot_df.x) / 2))
+    new_img2 = new_img[(min_h+1):(end - min_h), (min_w+1):(end - min_w)]
+    @info "Removing the outlier pixels..."
+    flip_bg_color!(new_img2)
+    println("All done!")
+    rot_df.x .-= min_h
+    rot_df.y .-= min_w
+    return new_img2, rot_df
 end
